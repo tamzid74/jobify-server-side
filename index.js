@@ -28,11 +28,16 @@ async function run() {
 
     const jobsCollection = client.db("JobDB").collection("Jobs");
 
-    app.get("/api/v1/jobs", async (req, res) => {
+    app.get("/jobs", async (req, res) => {
       const cursor = jobsCollection.find();
       const result = await cursor.toArray();
       res.send(result);
     });
+    app.post("/jobs", async (req, res) => {
+        const newJob = req.body;
+        const result = await jobsCollection.insertOne(newJob);
+        res.send(result);
+      });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
