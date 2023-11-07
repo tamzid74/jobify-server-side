@@ -27,9 +27,7 @@ async function run() {
     await client.connect();
 
     const jobsCollection = client.db("JobDB").collection("Jobs");
-    const appliedJobCollection = client
-      .db("appliedJobDB")
-      .collection("appliedJob");
+    const appliedJobCollection = client.db("JobDB").collection("appliedJob");
 
     //  For all Job
     app.get("/jobs", async (req, res) => {
@@ -37,12 +35,32 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result);
     });
+    // get my job
+
+    app.get('/myJobs',async(req,res)=>{
+      let query ={}
+      if(req.query?.email){
+        query ={email: req.query.email}
+      }
+      const result =await jobsCollection.find(query).toArray()
+      res.send(result)
+    })
+
+
 
     // for individual job details
     app.get("/jobDetails/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await jobsCollection.findOne(query);
+      res.send(result);
+    });
+
+    // for applied job post
+
+    app.post("/appliedJobs", async (req, res) => {
+      const appliedJob = req.body;
+      const result = await appliedJobCollection.insertOne(appliedJob);
       res.send(result);
     });
 
