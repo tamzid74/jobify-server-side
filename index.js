@@ -36,6 +36,14 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/jobs/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await jobsCollection.findOne(query);
+      res.send(result);
+    });
+
+
     // get myJob
     app.get("/myJobs", async (req, res) => {
       let query = {};
@@ -55,12 +63,12 @@ async function run() {
     });
 
     // get applied job data
-    app.get("/applied", async (req, res) => {
+    app.get("/appliedJobs", async (req, res) => {
       let query = {};
       if (req.query?.email) {
         query = { email: req.query.email };
       }
-      const result = await jobsCollection.find(query).toArray();
+      const result = await appliedJobCollection.find(query).toArray();
       res.send(result);
     });
 
