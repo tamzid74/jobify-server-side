@@ -54,6 +54,16 @@ async function run() {
       res.send(result);
     });
 
+    // get applied job data
+    app.get("/applied", async (req, res) => {
+      let query = {};
+      if (req.query?.email) {
+        query = { email: req.query.email };
+      }
+      const result = await jobsCollection.find(query).toArray();
+      res.send(result);
+    });
+
     // update myJobs
     app.put("/update/:id", async (req, res) => {
       const id = req.params.id;
@@ -61,7 +71,7 @@ async function run() {
       const options = { upsert: true };
       const updatedJobs = req.body;
 
-      const  job= {
+      const job = {
         $set: {
           jobBanner: updatedJobs.jobBanner,
           jobTitle: updatedJobs.jobTitle,
