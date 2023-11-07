@@ -35,18 +35,16 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result);
     });
-    // get my job
 
-    app.get('/myJobs',async(req,res)=>{
-      let query ={}
-      if(req.query?.email){
-        query ={email: req.query.email}
+    // get myJob
+    app.get("/myJobs", async (req, res) => {
+      let query = {};
+      if (req.query?.email) {
+        query = { email: req.query.email };
       }
-      const result =await jobsCollection.find(query).toArray()
-      res.send(result)
-    })
-
-
+      const result = await jobsCollection.find(query).toArray();
+      res.send(result);
+    });
 
     // for individual job details
     app.get("/jobDetails/:id", async (req, res) => {
@@ -56,8 +54,15 @@ async function run() {
       res.send(result);
     });
 
-    // for applied job post
+    // delete myJobs
+    app.delete("/myJobs/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await jobsCollection.deleteOne(query);
+      console.log(res.send(result));
+    });
 
+    // for applied job post
     app.post("/appliedJobs", async (req, res) => {
       const appliedJob = req.body;
       const result = await appliedJobCollection.insertOne(appliedJob);
