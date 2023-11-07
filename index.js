@@ -1,12 +1,18 @@
 const express = require("express");
 require("dotenv").config();
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 // const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 5000;
 
 // middle ware
-app.use(cors());
+app.use(
+  cors({
+    origin: ["http://localhost:5173"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
@@ -29,6 +35,26 @@ async function run() {
     const jobsCollection = client.db("JobDB").collection("Jobs");
     const appliedJobCollection = client.db("JobDB").collection("appliedJob");
 
+    // auth related api
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "2h",
+      });
+      res
+        .cookie("token", token, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "none",
+        })
+        .send({ success: true });
+    });
+
+    app.post("/logout", async (req, res) => {
+      const user = req.body;
+      res.clearCookie("token", { maxAge: 0 }).send({ success: true });
+    });
+
     //  For all Job
     app.get("/jobs", async (req, res) => {
       const cursor = jobsCollection.find();
@@ -42,7 +68,6 @@ async function run() {
       const result = await jobsCollection.findOne(query);
       res.send(result);
     });
-
 
     // get myJob
     app.get("/myJobs", async (req, res) => {
@@ -104,6 +129,25 @@ async function run() {
       const result = await jobsCollection.deleteOne(query);
       console.log(res.send(result));
     });
+
+    // app.post("/appliedJobs", async (req, res) => {
+    //   const appliedJob = req.body;
+
+    //   const jobApplicantsCount = parseInt(appliedJob.jobApplicants, 10) + 1;
+    //   appliedJob.jobApplicants = jobApplicantsCount.toString();
+
+    //   const result = await jobsCollection.updateOne(
+    //     { jobTitle: appliedJob.jobTitle },
+    //     { $set: { jobApplicants: appliedJob.jobApplicants } }
+    //   );
+
+    //   if (result.modifiedCount === 1) {
+    //     const insertResult = await appliedJobCollection.insertOne(appliedJob);
+    //     res.status(200).json({ insertedId: insertResult.insertedId });
+    //   } else {
+    //     res.status(500).json({ error: "Failed to update jobApplicants count." });
+    //   }
+    // });
 
     // for applied job post
     app.post("/appliedJobs", async (req, res) => {
