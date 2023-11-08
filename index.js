@@ -11,7 +11,7 @@ const port = process.env.PORT || 5000;
 app.use(
   cors({
     origin: [
-      "http://localhost:5173",
+      // "http://localhost:5173",
       "https://jobify-74f3d.web.app",
       "https://jobify-74f3d.firebaseapp.com",
     ],
@@ -57,7 +57,7 @@ const verifyToken = (req, res, next) => {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect(); 
 
     const jobsCollection = client.db("JobDB").collection("Jobs");
     const appliedJobCollection = client.db("JobDB").collection("appliedJob");
