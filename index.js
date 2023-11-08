@@ -2,20 +2,25 @@ const express = require("express");
 require("dotenv").config();
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
-// const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const cookieParser = require("cookie-parser");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 5000;
 
 // middle ware
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: [
+      "http://localhost:5173",
+      "https://jobify-74f3d.web.app",
+      "https://jobify-74f3d.firebaseapp.com",
+    ],
     credentials: true,
   })
 );
 app.use(express.json());
+app.use(cookieParser());
 
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.rdcufd9.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -26,6 +31,28 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
+
+// middlewares
+const logger = (req, res, next) => {
+  console.log("log:info", req.method, req.url);
+  next();
+};
+
+const verifyToken = (req, res, next) => {
+  const token = req?.cookies?.token;
+  // console.log("token", token);
+  if (!token) {
+    return res.status(401).send({ message: "unauthorized access" });
+  }
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decode) => {
+    if (err) {
+      return res.status(401).send({ message: "unauthorized access" });
+    }
+    req.user = decode;
+    next();
+  });
+  // next();
+};
 
 async function run() {
   try {
@@ -70,7 +97,11 @@ async function run() {
     });
 
     // get myJob
-    app.get("/myJobs", async (req, res) => {
+    app.get("/myJobs", logger, verifyToken, async (req, res) => {
+      // console.log("cookies:", req.cookies);
+      if (req.user.email !== req.query.email) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
       let query = {};
       if (req.query?.email) {
         query = { email: req.query.email };
@@ -88,7 +119,7 @@ async function run() {
     });
 
     // get applied job data
-    app.get("/appliedJobs", async (req, res) => {
+    app.get("/appliedJobs", logger, verifyToken, async (req, res) => {
       let query = {};
       if (req.query?.email) {
         query = { email: req.query.email };
@@ -130,24 +161,23 @@ async function run() {
       console.log(res.send(result));
     });
 
-    // app.post("/appliedJobs", async (req, res) => {
-    //   const appliedJob = req.body;
+    app.post("/appliedJobs", async (req, res) => {
+      const appliedJob = req.body;
 
-    //   const jobApplicantsCount = parseInt(appliedJob.jobApplicants, 10) + 1;
-    //   appliedJob.jobApplicants = jobApplicantsCount.toString();
+      const jobApplicantsCount = parseInt(appliedJob.jobApplicants) + 1;
+      appliedJob.jobApplicants = jobApplicantsCount.toString(); 
 
-    //   const result = await jobsCollection.updateOne(
-    //     { jobTitle: appliedJob.jobTitle },
-    //     { $set: { jobApplicants: appliedJob.jobApplicants } }
-    //   );
-
-    //   if (result.modifiedCount === 1) {
-    //     const insertResult = await appliedJobCollection.insertOne(appliedJob);
-    //     res.status(200).json({ insertedId: insertResult.insertedId });
-    //   } else {
-    //     res.status(500).json({ error: "Failed to update jobApplicants count." });
-    //   }
-    // });
+      const result = await jobsCollection.updateOne(
+        { jobTitle: appliedJob.jobTitle },
+        { $set: { jobApplicants: appliedJob.jobApplicants } }
+      );
+      if (result.modifiedCount === 1) {
+        const insertResult = await appliedJobCollection.insertOne(appliedJob);
+        res.status(200).json({ insertedId: insertResult.insertedId });
+      } else {
+        res.status(500).json({ error: "Failed to update jobApplicants count." });
+      }
+    });
 
     // for applied job post
     app.post("/appliedJobs", async (req, res) => {
